@@ -15,7 +15,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import type { IncidentType, IncidentPriority } from "@/lib/types"
 
-const incidentTypeLabels: Record<IncidentType, string> = {
+const incidentTypeLabels: Record<string, string> = {
   vehicle_breakdown: "Averia del vehiculo",
   accident: "Accidente",
   delivery_issue: "Problema de entrega",
@@ -46,14 +46,14 @@ const statusLabels = {
 }
 
 export default function DriverIncidentsPage() {
-  const { currentUser, incidents, deliveries, addIncident } = useStore()
+  const { incidents, deliveries, addIncident, currentUser } = useStore()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newIncident, setNewIncident] = useState({
     type: "delivery_issue" as IncidentType,
     priority: "medium" as IncidentPriority,
     title: "",
     description: "",
-    deliveryId: ""
+    deliveryId: "none" // <-- Inicializado en "none" en lugar de ""
   })
 
   const driverDeliveries = deliveries.filter(d => d.driverId === currentUser?.id)
@@ -69,7 +69,7 @@ export default function DriverIncidentsPage() {
       title: newIncident.title,
       description: newIncident.description,
       reportedBy: currentUser.id,
-      deliveryId: newIncident.deliveryId || undefined
+      deliveryId: newIncident.deliveryId === "none" ? undefined : newIncident.deliveryId
     })
 
     setNewIncident({
@@ -77,7 +77,7 @@ export default function DriverIncidentsPage() {
       priority: "medium",
       title: "",
       description: "",
-      deliveryId: ""
+      deliveryId: "none"
     })
     setIsDialogOpen(false)
   }
@@ -89,7 +89,18 @@ export default function DriverIncidentsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Mis Incidencias</h1>
           <p className="text-muted-foreground">Reporta y da seguimiento a problemas</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open)
+          if (!open) {
+            setNewIncident({
+              type: "delivery_issue",
+              priority: "medium",
+              title: "",
+              description: "",
+              deliveryId: "none"
+            })
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -146,10 +157,11 @@ export default function DriverIncidentsPage() {
                     <SelectValue placeholder="Seleccionar entrega" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Ninguna</SelectItem>
-                    {driverDeliveries.map(delivery => (
-                      <SelectItem key={delivery.id} value={delivery.id}>
-                        {delivery.trackingNumber} - {delivery.customerName}
+                    {/* ✅ SOLUCIÓN: Cambiado "" por "none" para evitar el crash de Radix */}
+                    <SelectItem value="none">Ninguna</SelectItem>
+                    {driverDeliveries.map((delivery, idx) => (
+                      <SelectItem key={delivery.id || idx} value={delivery.id || `fallback-${idx}`}>
+                        {(delivery.trackingNumber || delivery.trackingCode || "Envío") + ` - ${delivery.customerName || "Sin Nombre"}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -204,16 +216,26 @@ export default function DriverIncidentsPage() {
                   <div className="space-y-1">
                     <CardTitle className="text-lg">{incident.title}</CardTitle>
                     <CardDescription>
-                      {format(new Date(incident.createdAt), "PPp", { locale: es })}
+                      {/* ✅ SOLUCIÓN: Formateo con Try/Catch seguro para que no rompa la UI */}
+                      {(() => {
+                        try {
+                          if (!incident.createdAt) return "Recién guardado";
+                          const d = new Date(incident.createdAt);
+                          if (isNaN(d.getTime())) return "Recién guardado";
+                          return format(d, "PPp", { locale: es });
+                        } catch (e) {
+                          return "Recién guardado";
+                        }
+                      })()}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Badge variant="outline">{incidentTypeLabels[incident.type]}</Badge>
-                    <Badge className={statusColors[incident.status]}>
+                    <Badge variant="outline">{incidentTypeLabels[incident.type] || "Otro"}</Badge>
+                    <Badge className={statusColors[incident.status as keyof typeof statusColors] || statusColors.open}>
                       {incident.status === "open" && <XCircle className="mr-1 h-3 w-3" />}
                       {incident.status === "in_progress" && <Clock className="mr-1 h-3 w-3" />}
                       {incident.status === "resolved" && <CheckCircle className="mr-1 h-3 w-3" />}
-                      {statusLabels[incident.status]}
+                      {statusLabels[incident.status as keyof typeof statusLabels] || "Abierta"}
                     </Badge>
                   </div>
                 </div>

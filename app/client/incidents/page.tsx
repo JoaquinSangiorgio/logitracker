@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useAppStore } from "@/lib/store"
+import { useStore } from "@/lib/store"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertTriangle, Plus, Clock, CheckCircle, XCircle, MessageSquare } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import type { IncidentType, IncidentPriority } from "@/lib/types"
+import type { IncidentType } from "@/lib/types"
+
+type IncidentPriority = "low" | "medium" | "high" | "critical"
 
 const incidentTypeLabels: Record<IncidentType, string> = {
   vehicle_breakdown: "Averia del vehiculo",
@@ -45,8 +47,12 @@ const statusLabels = {
   closed: "Cerrada"
 }
 
+type IncidentStatus = keyof typeof statusColors
+
 export default function ClientIncidentsPage() {
-  const { currentUser, incidents, deliveries, addIncident } = useAppStore()
+  const store = useStore() as any
+  const { incidents, deliveries, addIncident } = store
+  const currentUser = store.currentUser ?? store.user ?? null
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newIncident, setNewIncident] = useState({
     type: "customer_complaint" as IncidentType,
@@ -56,8 +62,8 @@ export default function ClientIncidentsPage() {
     deliveryId: ""
   })
 
-  const clientDeliveries = deliveries.filter(d => d.clientId === currentUser?.id)
-  const clientIncidents = incidents.filter(i => i.reportedBy === currentUser?.id)
+  const clientDeliveries = deliveries.filter((d: { clientId: string | undefined }) => d.clientId === currentUser?.id)
+  const clientIncidents = incidents.filter((i: { reportedBy: string | undefined }) => i.reportedBy === currentUser?.id)
 
   const handleSubmit = () => {
     if (!currentUser || !newIncident.title || !newIncident.description) return
@@ -73,7 +79,7 @@ export default function ClientIncidentsPage() {
     })
 
     setNewIncident({
-      type: "customer_complaint",
+      type: "customer_complaint" as IncidentType,
       priority: "medium",
       title: "",
       description: "",
@@ -131,7 +137,7 @@ export default function ClientIncidentsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Ninguna</SelectItem>
-                    {clientDeliveries.map(delivery => (
+                    {clientDeliveries.map((delivery: { id: string; trackingNumber: string }) => (
                       <SelectItem key={delivery.id} value={delivery.id}>
                         {delivery.trackingNumber}
                       </SelectItem>
@@ -181,7 +187,7 @@ export default function ClientIncidentsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {clientIncidents.map(incident => (
+          {clientIncidents.map((incident: any) => (
             <Card key={incident.id}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -191,11 +197,11 @@ export default function ClientIncidentsPage() {
                       {format(new Date(incident.createdAt), "PPp", { locale: es })}
                     </CardDescription>
                   </div>
-                  <Badge className={statusColors[incident.status]}>
+                  <Badge className={statusColors[incident.status as IncidentStatus]}>
                     {incident.status === "open" && <XCircle className="mr-1 h-3 w-3" />}
                     {incident.status === "in_progress" && <Clock className="mr-1 h-3 w-3" />}
                     {incident.status === "resolved" && <CheckCircle className="mr-1 h-3 w-3" />}
-                    {statusLabels[incident.status]}
+                    {statusLabels[incident.status as IncidentStatus]}
                   </Badge>
                 </div>
               </CardHeader>

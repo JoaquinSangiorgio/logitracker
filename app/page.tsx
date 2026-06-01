@@ -31,7 +31,7 @@ export default function LoginPage() {
         router.push('/admin')
       } else if (user?.role === 'driver') {
         router.push('/driver')
-      } else {
+      } else if (user?.role === 'client') {
         router.push('/client')
       }
     } else {
@@ -53,7 +53,7 @@ export default function LoginPage() {
     setIsLoading(true)
     const result = await login(emails[type], 'demo123')
     if (result.success) {
-      router.push(`/${type === 'admin' ? 'admin' : type}`)
+      router.push(`/${type === 'admin' ? 'admin' : type === 'driver' ? 'driver' : 'client'}`)
     }
     setIsLoading(false)
   }

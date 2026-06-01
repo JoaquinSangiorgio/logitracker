@@ -1,25 +1,23 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { useStore } from "@/lib/store"
+import { useAuthStore } from "@/lib/store"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { ClientHeader } from "@/components/client/client-header"
 import { ClientNav } from "@/components/client/client-nav"
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
-  const store = useStore()
-  const currentUser = (store as any).currentUser
-  const isAuthenticated = Boolean(currentUser)
+  const { user, isAuthenticated } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isAuthenticated || currentUser?.role !== "client") {
+    if (!isAuthenticated || user?.role !== "client") {
       router.push("/")
     }
-  }, [isAuthenticated, currentUser, router])
+  }, [isAuthenticated, user, router])
 
-  if (!isAuthenticated || currentUser?.role !== "client") {
+  if (!isAuthenticated || user?.role !== "client") {
     return null
   }
 

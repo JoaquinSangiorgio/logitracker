@@ -105,8 +105,8 @@ export function AdminSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/admin/settings'}>
-                  <Link href="/admin/settings">
+                <SidebarMenuButton asChild isActive={pathname === '/admin/ajustes'}>
+                  <Link href="/admin/ajustes">
                     <Settings className="h-4 w-4" />
                     <span>Ajustes</span>
                   </Link>

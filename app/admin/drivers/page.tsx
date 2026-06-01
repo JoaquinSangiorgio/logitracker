@@ -54,20 +54,49 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import type { Driver } from '@/lib/types'
 
+// Interfaces para las tipaciones de las Props del Formulario
+interface FormDataState {
+  name: string
+  email: string
+  phone: string
+  vehiclePlate: string
+  vehicleType: string
+  status: 'available' | 'busy' | 'offline'
+}
+
+interface DriverFormProps {
+  formData: FormDataState
+  setFormData: React.Dispatch<React.SetStateAction<FormDataState>>
+  onSubmit: () => void
+  submitLabel: string
+}
+
 export default function DriversPage() {
   const { drivers, addDriver, updateDriver, deleteDriver } = useDriversStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormDataState>({
     name: '',
     email: '',
     phone: '',
     vehiclePlate: '',
     vehicleType: 'Van',
-    status: 'available' as const
+    status: 'available'
   })
+
+  // Función para limpiar por completo el formulario
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      vehiclePlate: '',
+      vehicleType: 'Van',
+      status: 'available'
+    })
+  }
 
   const filteredDrivers = drivers.filter(driver =>
     driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,7 +110,7 @@ export default function DriversPage() {
       role: 'driver',
       status: formData.status
     })
-    setFormData({ name: '', email: '', phone: '', vehiclePlate: '', vehicleType: 'Van', status: 'available' })
+    resetForm()
     setIsAddDialogOpen(false)
   }
 
@@ -90,6 +119,7 @@ export default function DriversPage() {
       updateDriver(selectedDriver.id, formData)
       setIsEditDialogOpen(false)
       setSelectedDriver(null)
+      resetForm()
     }
   }
 
@@ -125,88 +155,6 @@ export default function DriversPage() {
     }
   }
 
-  const DriverForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
-    <div className="grid gap-4 py-4">
-      <div className="grid gap-2">
-        <Label htmlFor="name">Nombre completo</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Juan Perez"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="email">Correo electronico</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="juan@logistica.com"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="phone">Telefono</Label>
-          <Input
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder="+52 55 1234 5678"
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="vehiclePlate">Placa del vehiculo</Label>
-          <Input
-            id="vehiclePlate"
-            value={formData.vehiclePlate}
-            onChange={(e) => setFormData({ ...formData, vehiclePlate: e.target.value })}
-            placeholder="ABC-123"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="vehicleType">Tipo de vehiculo</Label>
-          <Select
-            value={formData.vehicleType}
-            onValueChange={(value) => setFormData({ ...formData, vehicleType: value })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Van">Van</SelectItem>
-              <SelectItem value="Motorcycle">Motocicleta</SelectItem>
-              <SelectItem value="Truck">Camion</SelectItem>
-              <SelectItem value="Car">Auto</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="status">Estado</Label>
-        <Select
-          value={formData.status}
-          onValueChange={(value: 'available' | 'busy' | 'offline') => setFormData({ ...formData, status: value })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="available">Disponible</SelectItem>
-            <SelectItem value="busy">Ocupado</SelectItem>
-            <SelectItem value="offline">Desconectado</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <DialogFooter>
-        <Button type="button" onClick={onSubmit}>{submitLabel}</Button>
-      </DialogFooter>
-    </div>
-  )
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -214,7 +162,15 @@ export default function DriversPage() {
           <h1 className="text-3xl font-bold tracking-tight">Choferes</h1>
           <p className="text-muted-foreground">Gestiona los choferes del sistema</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        
+        {/* Modal para Agregar Chofer */}
+        <Dialog 
+          open={isAddDialogOpen} 
+          onOpenChange={(open) => {
+            setIsAddDialogOpen(open)
+            if (open) resetForm() // Resetea al abrir para asegurar que venga vacío
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -228,7 +184,12 @@ export default function DriversPage() {
                 Ingresa los datos del nuevo chofer
               </DialogDescription>
             </DialogHeader>
-            <DriverForm onSubmit={handleAddDriver} submitLabel="Agregar Chofer" />
+            <DriverForm 
+              formData={formData} 
+              setFormData={setFormData} 
+              onSubmit={handleAddDriver} 
+              submitLabel="Agregar Chofer" 
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -398,8 +359,17 @@ export default function DriversPage() {
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      {/* Modal para Editar Chofer */}
+      <Dialog 
+        open={isEditDialogOpen} 
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open)
+          if (!open) {
+            setSelectedDriver(null)
+            resetForm() // Limpia los residuos al cerrar para que no afecte el formulario de creación
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Editar Chofer</DialogTitle>
@@ -407,9 +377,97 @@ export default function DriversPage() {
               Modifica los datos del chofer
             </DialogDescription>
           </DialogHeader>
-          <DriverForm onSubmit={handleEditDriver} submitLabel="Guardar Cambios" />
+          <DriverForm 
+            formData={formData} 
+            setFormData={setFormData} 
+            onSubmit={handleEditDriver} 
+            submitLabel="Guardar Cambios" 
+          />
         </DialogContent>
       </Dialog>
     </div>
   )
 }
+
+// COMPONENTE FORMULARIO AISLADO (No se rompe el foco al escribir)
+const DriverForm = ({ formData, setFormData, onSubmit, submitLabel }: DriverFormProps) => (
+  <div className="grid gap-4 py-4">
+    <div className="grid gap-2">
+      <Label htmlFor="name">Nombre completo</Label>
+      <Input
+        id="name"
+        value={formData.name}
+        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        placeholder="Juan Perez"
+      />
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="email">Correo electronico</Label>
+        <Input
+          id="email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="juan@logistica.com"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="phone">Telefono</Label>
+        <Input
+          id="phone"
+          value={formData.phone}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          placeholder="+52 55 1234 5678"
+        />
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="vehiclePlate">Placa del vehículo</Label>
+        <Input
+          id="vehiclePlate"
+          value={formData.vehiclePlate}
+          onChange={(e) => setFormData({ ...formData, vehiclePlate: e.target.value })}
+          placeholder="ABC-123"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="vehicleType">Tipo de vehículo</Label>
+        <Select
+          value={formData.vehicleType}
+          onValueChange={(value) => setFormData({ ...formData, vehicleType: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Van">Van</SelectItem>
+            <SelectItem value="Motocicleta">Motocicleta</SelectItem>
+            <SelectItem value="Camion">Camion</SelectItem>
+            <SelectItem value="Auto">Auto</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+    <div className="grid gap-2">
+      <Label htmlFor="status">Estado</Label>
+      <Select
+        value={formData.status}
+        onValueChange={(value: 'available' | 'busy' | 'offline') => setFormData({ ...formData, status: value })}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="available">Disponible</SelectItem>
+          <SelectItem value="busy">Ocupado</SelectItem>
+          <SelectItem value="offline">Desconectado</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+    <DialogFooter>
+      <Button type="button" onClick={onSubmit}>{submitLabel}</Button>
+    </DialogFooter>
+  </div>
+)

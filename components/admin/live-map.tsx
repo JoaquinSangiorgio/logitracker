@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -25,6 +25,49 @@ const driverIcon = createIcon('#22c55e', 'driver')
 const destinationIcon = createIcon('#3b82f6', 'destination')
 const pickupIcon = createIcon('#f97316', 'pickup')
 
+// Calcular distancia entre dos puntos (Haversine)
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
+// Algoritmo Nearest Neighbor para optimización de rutas
+const optimizeRoute = (startLat: number, startLng: number, deliveries: any[]): any[] => {
+  if (deliveries.length === 0) return []
+  
+  const remaining = [...deliveries]
+  const route = []
+  let currentLat = startLat
+  let currentLng = startLng
+
+  while (remaining.length > 0) {
+    let nearestIdx = 0
+    let nearestDistance = Infinity
+
+    remaining.forEach((delivery, idx) => {
+      const distance = calculateDistance(currentLat, currentLng, delivery.deliveryLat, delivery.deliveryLng)
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        nearestIdx = idx
+      }
+    })
+
+    const nearest = remaining[nearestIdx]
+    route.push(nearest)
+    currentLat = nearest.deliveryLat
+    currentLng = nearest.deliveryLng
+    remaining.splice(nearestIdx, 1)
+  }
+
+  return route
+}
+
 export default function LiveMap() {
   const { drivers } = useDriversStore()
   const { deliveries } = useDeliveriesStore()
@@ -34,18 +77,43 @@ export default function LiveMap() {
     setMounted(true)
   }, [])
 
-  if (!mounted) return null
+  // 1. FILTRADOS MEMOIZADOS (Evitan recrear referencias inútiles en memoria)
+  const activeDrivers = useMemo(() => {
+    return drivers.filter(d => d.status !== 'offline' && d.currentLocation)
+  }, [drivers])
 
-  const activeDrivers = drivers.filter(d => d.status !== 'offline' && d.currentLocation)
-  const activeDeliveries = deliveries.filter(d => 
-    ['assigned', 'picked_up', 'in_transit', 'arriving'].includes(d.status)
-  )
+  const activeDeliveries = useMemo(() => {
+    return deliveries.filter(d =>
+      ['assigned', 'picked_up', 'in_transit', 'arriving'].includes(d.status)
+    )
+  }, [deliveries])
+
+  // 2. CÁLCULO DE RUTAS OPTIMIZADAS DIRECTAMENTE CON USEMEMO
+  // Eliminamos el useEffect problemático que llamaba a un setState interno
+  const optimizedRoutes = useMemo(() => {
+    const routes: Record<string, any[]> = {}
+    
+    activeDrivers.forEach(driver => {
+      const driverDeliveries = activeDeliveries.filter(d => d.driverId === driver.id)
+      if (driverDeliveries.length > 0 && driver.currentLocation) {
+        routes[driver.id] = optimizeRoute(
+          driver.currentLocation.lat,
+          driver.currentLocation.lng,
+          driverDeliveries
+        )
+      }
+    })
+    
+    return routes
+  }, [activeDrivers, activeDeliveries])
+
+  if (!mounted) return null
 
   // Center on Mexico City
   const center: [number, number] = [19.4326, -99.1332]
 
   return (
-    <div className="h-[600px] rounded-lg overflow-hidden border">
+    <div className="h-[600px] rounded-lg overflow-hidden border relative">
       <MapContainer
         center={center}
         zoom={12}
@@ -56,6 +124,31 @@ export default function LiveMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {/* Optimal route polylines for each driver */}
+        {activeDrivers.map(driver => {
+          if (!driver.currentLocation || !optimizedRoutes[driver.id]?.length) return null
+          
+          const route = optimizedRoutes[driver.id]
+          const routeCoordinates: [number, number][] = [
+            [driver.currentLocation.lat, driver.currentLocation.lng]
+          ]
+          
+          route.forEach(delivery => {
+            routeCoordinates.push([delivery.deliveryLat, delivery.deliveryLng])
+          })
+
+          return (
+            <Polyline
+              key={`optimal-route-${driver.id}`}
+              positions={routeCoordinates}
+              color="#8b5cf6"
+              weight={3}
+              opacity={0.8}
+              dashArray="5, 5"
+            />
+          )
+        })}
 
         {/* Driver markers */}
         {activeDrivers.map(driver => (
@@ -75,6 +168,11 @@ export default function LiveMap() {
                       {driver.status === 'busy' ? 'Ocupado' : 'Disponible'}
                     </span>
                   </p>
+                  {optimizedRoutes[driver.id]?.length > 0 && (
+                    <p className="text-xs mt-2 bg-purple-100 text-purple-700 p-1 rounded">
+                      Ruta óptima: {optimizedRoutes[driver.id].length} paradas
+                    </p>
+                  )}
                 </div>
               </Popup>
             </Marker>
@@ -117,27 +215,29 @@ export default function LiveMap() {
             </Popup>
           </Marker>
         ))}
-
-        {/* Route lines from driver to delivery */}
-        {activeDeliveries.map(delivery => {
-          const driver = activeDrivers.find(d => d.id === delivery.driverId)
-          if (!driver?.currentLocation) return null
-          
-          return (
-            <Polyline
-              key={`route-${delivery.id}`}
-              positions={[
-                [driver.currentLocation.lat, driver.currentLocation.lng],
-                [delivery.deliveryLat, delivery.deliveryLng]
-              ]}
-              color="#3b82f6"
-              weight={3}
-              opacity={0.6}
-              dashArray="10, 10"
-            />
-          )
-        })}
       </MapContainer>
+
+      {/* Legend */}
+      <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-lg z-10 text-sm space-y-2">
+        <div className="font-semibold mb-3">Leyenda</div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <span>Chofer</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+          <span>Destino</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+          <span>Recogida</span>
+        </div>
+        <hr className="my-2" />
+        <div className="flex items-center gap-2">
+          <div className="h-0.5 w-6 bg-purple-500"></div>
+          <span>Ruta Óptima</span>
+        </div>
+      </div>
 
       <style jsx global>{`
         .custom-marker {

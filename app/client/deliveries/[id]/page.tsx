@@ -1,7 +1,7 @@
 "use client"
 
 import { use, useEffect, useState } from "react"
-import { useAppStore } from "@/lib/store"
+import { useStore } from "@/lib/store"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -43,18 +43,21 @@ const statusSteps = [
 
 export default function ClientDeliveryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const { deliveries, drivers } = useAppStore()
+  const { deliveries, drivers } = useStore()
   const router = useRouter()
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   const delivery = deliveries.find(d => d.id === id)
   const driver = delivery?.driverId ? drivers.find(d => d.id === delivery.driverId) : null
+  const destination = (delivery as (typeof delivery & {
+    destination?: { lat: number; lng: number; address?: string }
+  }))?.destination
 
   useEffect(() => {
-    if (delivery?.status === "in_transit" && driver) {
+    if (delivery?.status === "in_transit" && driver && destination) {
       const interval = setInterval(() => {
-        const baseLat = delivery.destination.lat
-        const baseLng = delivery.destination.lng
+        const baseLat = destination.lat
+        const baseLng = destination.lng
         setDriverLocation({
           lat: baseLat + (Math.random() - 0.5) * 0.02,
           lng: baseLng + (Math.random() - 0.5) * 0.02
@@ -62,13 +65,13 @@ export default function ClientDeliveryDetailPage({ params }: { params: Promise<{
       }, 3000)
 
       setDriverLocation({
-        lat: delivery.destination.lat + 0.01,
-        lng: delivery.destination.lng + 0.01
+        lat: destination.lat + 0.01,
+        lng: destination.lng + 0.01
       })
 
       return () => clearInterval(interval)
     }
-  }, [delivery, driver])
+  }, [delivery, driver, destination])
 
   if (!delivery) {
     return (
@@ -102,7 +105,7 @@ export default function ClientDeliveryDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      {delivery.status === "in_transit" && driverLocation && (
+      {delivery.status === "in_transit" && driverLocation && destination && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -114,7 +117,7 @@ export default function ClientDeliveryDetailPage({ params }: { params: Promise<{
             <div className="h-[250px] rounded-b-lg overflow-hidden">
               <TrackingMap 
                 driverLocation={driverLocation}
-                destination={delivery.destination}
+                destination={destination}
               />
             </div>
           </CardContent>
@@ -175,7 +178,7 @@ export default function ClientDeliveryDetailPage({ params }: { params: Promise<{
             <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
             <div>
               <p className="text-sm font-medium">Direccion de Entrega</p>
-              <p className="text-sm text-muted-foreground">{delivery.destination.address}</p>
+              <p className="text-sm text-muted-foreground">{destination?.address ?? "Sin direccion"}</p>
             </div>
           </div>
           <Separator />

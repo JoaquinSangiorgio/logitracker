@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Package, AlertTriangle } from "lucide-react"
+import { Home, Package, AlertTriangle, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/client", icon: Home, label: "Inicio" },
   { href: "/client/deliveries", icon: Package, label: "Mis Entregas" },
-  { href: "/client/incidents", icon: AlertTriangle, label: "Incidencias" }
+  { href: "/client/incidents", icon: AlertTriangle, label: "Incidencias" },
+  { href: "/client/profile", icon: User, label: "Perfil" }
 ]
 
 export function ClientNav() {
@@ -27,7 +28,7 @@ export function ClientNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors",
+                  "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors text-center",
                   isActive 
                     ? "text-primary" 
                     : "text-muted-foreground hover:text-foreground"

@@ -1,6 +1,6 @@
 "use client"
 
-import { useAppStore } from "@/lib/store"
+import { useStore } from "@/lib/store"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -8,6 +8,8 @@ import { Package, Truck, CheckCircle, Clock, AlertTriangle, ChevronRight } from 
 import Link from "next/link"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+
+type DeliveryStatusKey = "pending" | "assigned" | "in_transit" | "delivered" | "failed"
 
 const statusConfig = {
   pending: { label: "Pendiente", color: "bg-muted text-muted-foreground", icon: Clock },
@@ -18,11 +20,11 @@ const statusConfig = {
 }
 
 export default function ClientDeliveriesPage() {
-  const { currentUser, deliveries } = useAppStore()
+  const { deliveries } = useStore()
 
-  const clientDeliveries = deliveries.filter(d => d.clientId === currentUser?.id)
-  const activeDeliveries = clientDeliveries.filter(d => d.status !== "delivered" && d.status !== "failed")
-  const completedDeliveries = clientDeliveries.filter(d => d.status === "delivered" || d.status === "failed")
+  const clientDeliveries = deliveries.filter((d: { clientId: any }) => d.clientId)
+  const activeDeliveries = clientDeliveries.filter((d: { status: string }) => d.status !== "delivered" && d.status !== "failed")
+  const completedDeliveries = clientDeliveries.filter((d: { status: string }) => d.status === "delivered" || d.status === "failed")
 
   const DeliveryList = ({ items }: { items: typeof deliveries }) => (
     items.length === 0 ? (
@@ -38,7 +40,7 @@ export default function ClientDeliveriesPage() {
     ) : (
       <div className="space-y-3">
         {items.map(delivery => {
-          const config = statusConfig[delivery.status]
+          const config = statusConfig[delivery.status as DeliveryStatusKey] ?? statusConfig.pending
           const StatusIcon = config.icon
 
           return (
@@ -51,13 +53,27 @@ export default function ClientDeliveriesPage() {
                         <StatusIcon className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium">{delivery.trackingNumber}</p>
+                        <p className="font-medium">{delivery.id}</p>
                         <p className="text-sm text-muted-foreground line-clamp-1">
-                          {delivery.destination.address}
+                          {(delivery as any).destination?.address ?? "Sin direccion"}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(delivery.estimatedDelivery), "PPP", { locale: es })}
-                        </p>
+  {(() => {
+    try {
+      // 1. Validamos que exista y no sea un string vacío
+      if (!delivery.estimatedDelivery) return "Fecha por definir";
+      
+      const parsedDate = new Date(delivery.estimatedDelivery);
+      
+      // 2. Validamos si el objeto Date resultante es válido en JS
+      if (isNaN(parsedDate.getTime())) return "Fecha por definir";
+      
+      return format(parsedDate, "PPP", { locale: es });
+    } catch (error) {
+      return "Fecha por definir"; // Evita que explote la pantalla si algo falla en el parseo
+    }
+  })()}
+</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

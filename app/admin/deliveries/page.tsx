@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { LocationPicker } from '@/components/admin/location-picker'
 import { 
   Plus, 
   Search, 
@@ -54,7 +55,8 @@ import {
   XCircle,
   MapPin,
   Eye,
-  UserPlus
+  UserPlus,
+  Map
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -69,6 +71,8 @@ export default function DeliveriesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
+  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false)
+  const [locationPickerType, setLocationPickerType] = useState<'pickup' | 'delivery'>('pickup')
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null)
   const [formData, setFormData] = useState({
     clientId: '',
@@ -144,6 +148,25 @@ export default function DeliveriesPage() {
 
   const handleStatusChange = (deliveryId: string, status: DeliveryStatus) => {
     updateStatus(deliveryId, status)
+  }
+
+  const handleLocationSelect = (location: { address: string; lat: number; lng: number }) => {
+    if (locationPickerType === 'pickup') {
+      setFormData({
+        ...formData,
+        pickupAddress: location.address,
+        pickupLat: location.lat,
+        pickupLng: location.lng,
+      })
+    } else {
+      setFormData({
+        ...formData,
+        deliveryAddress: location.address,
+        deliveryLat: location.lat,
+        deliveryLng: location.lng,
+      })
+    }
+    setIsLocationPickerOpen(false)
   }
 
   const handleDeleteDelivery = (id: string) => {
@@ -240,20 +263,62 @@ export default function DeliveriesPage() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Direccion de recogida</Label>
-                <Input
-                  value={formData.pickupAddress}
-                  onChange={(e) => setFormData({ ...formData, pickupAddress: e.target.value })}
-                  placeholder="Bodega Central, Av. Tlahuac 100"
-                />
+                <Label>Dirección de recogida</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.pickupAddress}
+                    onChange={(e) => setFormData({ ...formData, pickupAddress: e.target.value })}
+                    placeholder="Bodega Central, Av. Tlahuac 100"
+                    readOnly
+                    className="cursor-pointer"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setLocationPickerType('pickup')
+                      setIsLocationPickerOpen(true)
+                    }}
+                    className="shrink-0 gap-2"
+                  >
+                    <Map className="h-4 w-4" />
+                    Mapa
+                  </Button>
+                </div>
+                {formData.pickupLat && formData.pickupLng && (
+                  <p className="text-xs text-muted-foreground">
+                    📍 {formData.pickupLat.toFixed(4)}, {formData.pickupLng.toFixed(4)}
+                  </p>
+                )}
               </div>
               <div className="grid gap-2">
-                <Label>Direccion de entrega</Label>
-                <Input
-                  value={formData.deliveryAddress}
-                  onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
-                  placeholder="Av. Reforma 123, Col. Centro"
-                />
+                <Label>Dirección de entrega</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.deliveryAddress}
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
+                    placeholder="Av. Reforma 123, Col. Centro"
+                    readOnly
+                    className="cursor-pointer"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setLocationPickerType('delivery')
+                      setIsLocationPickerOpen(true)
+                    }}
+                    className="shrink-0 gap-2"
+                  >
+                    <Map className="h-4 w-4" />
+                    Mapa
+                  </Button>
+                </div>
+                {formData.deliveryLat && formData.deliveryLng && (
+                  <p className="text-xs text-muted-foreground">
+                    📍 {formData.deliveryLat.toFixed(4)}, {formData.deliveryLng.toFixed(4)}
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
@@ -268,7 +333,7 @@ export default function DeliveriesPage() {
                   <Label>Tamano del paquete</Label>
                   <Select
                     value={formData.packageSize}
-                    onValueChange={(value: 'small' | 'medium' | 'large' | 'extra-large') => setFormData({ ...formData, packageSize: value })}
+                    onValueChange={(value: 'medium' | 'large' | 'extra-large') => setFormData({ ...formData, packageSize: value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -296,6 +361,13 @@ export default function DeliveriesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <LocationPicker
+          open={isLocationPickerOpen}
+          onOpenChange={setIsLocationPickerOpen}
+          onLocationSelect={handleLocationSelect}
+          type={locationPickerType}
+        />
       </div>
 
       {/* Stats Cards */}
