@@ -151,3 +151,51 @@ export interface RouteOptimization {
   estimatedDistance: number
   waypoints: { lat: number; lng: number }[]
 }
+
+export interface RouteStop {
+  id: string
+  deliveryId: string
+  order: number
+  address: string
+  lat: number
+  lng: number
+  estimatedArrival?: string
+  actualArrival?: string
+  status: 'pending' | 'completed' | 'skipped'
+  distance?: number // km desde el punto anterior
+  duration?: number // minutos desde el punto anterior
+}
+
+export interface Route {
+  id: string
+  name: string
+  driverId: string
+  driverName: string
+  status: 'draft' | 'active' | 'completed' | 'cancelled'
+
+  // Punto de inicio
+  startPoint: {
+    name: string
+    address: string
+    lat: number
+    lng: number
+  }
+
+  // Paradas ordenadas
+  stops: RouteStop[]
+
+  // IDs de entregas asignadas
+  deliveryIds: string[]
+
+  // Estadísticas
+  totalDistance?: number // km
+  estimatedDuration?: number // minutos
+  actualDuration?: number // minutos
+
+  // Fechas
+  scheduledDate?: string
+  startedAt?: string
+  completedAt?: string
+  createdAt: string
+  updatedAt: string
+}

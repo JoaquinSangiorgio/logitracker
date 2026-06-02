@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { User, Driver, Client, Delivery, Incident, UserRole } from './types'
-import { mockDrivers, mockClients, mockDeliveries, mockIncidents, mockUsers } from './mock-data'
+import type { User, Driver, Client, Delivery, Incident, UserRole, Route, RouteStop } from './types'
+import { mockDrivers, mockClients, mockDeliveries, mockIncidents, mockUsers, mockRoutes } from './mock-data'
 
 interface AuthState {
   user: User | Driver | Client | null
@@ -278,6 +278,97 @@ export const useOfflineStore = create<OfflineState>()(
   )
 )
 
+interface RoutesState {
+  routes: Route[]
+  addRoute: (route: Omit<Route, 'id' | 'createdAt' | 'updatedAt'>) => void
+  updateRoute: (id: string, data: Partial<Route>) => void
+  deleteRoute: (id: string) => void
+  updateRouteStatus: (id: string, status: Route['status']) => void
+  updateStopStatus: (routeId: string, stopId: string, status: RouteStop['status']) => void
+  startRoute: (id: string) => void
+  completeRoute: (id: string) => void
+}
+
+export const useRoutesStore = create<RoutesState>()(
+  persist(
+    (set) => ({
+      routes: mockRoutes,
+      addRoute: (routeData) => {
+        const newRoute: Route = {
+          ...routeData,
+          id: `route-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+        set((state) => ({ routes: [...state.routes, newRoute] }))
+      },
+      updateRoute: (id, data) => {
+        set((state) => ({
+          routes: state.routes.map(r =>
+            r.id === id ? { ...r, ...data, updatedAt: new Date().toISOString() } : r
+          )
+        }))
+      },
+      deleteRoute: (id) => {
+        set((state) => ({ routes: state.routes.filter(r => r.id !== id) }))
+      },
+      updateRouteStatus: (id, status) => {
+        set((state) => ({
+          routes: state.routes.map(r =>
+            r.id === id ? { ...r, status, updatedAt: new Date().toISOString() } : r
+          )
+        }))
+      },
+      updateStopStatus: (routeId, stopId, status) => {
+        set((state) => ({
+          routes: state.routes.map(r =>
+            r.id === routeId
+              ? {
+                  ...r,
+                  stops: r.stops.map(s =>
+                    s.id === stopId
+                      ? { ...s, status, actualArrival: status === 'completed' ? new Date().toISOString() : s.actualArrival }
+                      : s
+                  ),
+                  updatedAt: new Date().toISOString()
+                }
+              : r
+          )
+        }))
+      },
+      startRoute: (id) => {
+        set((state) => ({
+          routes: state.routes.map(r =>
+            r.id === id
+              ? {
+                  ...r,
+                  status: 'active' as const,
+                  startedAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                }
+              : r
+          )
+        }))
+      },
+      completeRoute: (id) => {
+        set((state) => ({
+          routes: state.routes.map(r =>
+            r.id === id
+              ? {
+                  ...r,
+                  status: 'completed' as const,
+                  completedAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                }
+              : r
+          )
+        }))
+      }
+    }),
+    { name: 'routes-storage' }
+  )
+)
+
 export const useStore = () => {
   const auth = useAuthStore()
   const drivers = useDriversStore()
@@ -285,6 +376,7 @@ export const useStore = () => {
   const deliveries = useDeliveriesStore()
   const incidents = useIncidentsStore()
   const offline = useOfflineStore()
+  const routes = useRoutesStore()
 
   return {
     ...auth,
@@ -292,6 +384,7 @@ export const useStore = () => {
     ...clients,
     ...deliveries,
     ...incidents,
-    ...offline
+    ...offline,
+    ...routes
   }
 }

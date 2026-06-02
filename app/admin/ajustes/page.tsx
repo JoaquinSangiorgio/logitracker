@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
+import { toast } from 'sonner'
 import {
   Zap,
   FileCheck,
@@ -26,6 +27,7 @@ import {
   ChevronRight,
   CheckCircle2,
   AlertCircle,
+  RefreshCw,
 } from 'lucide-react'
 
 export default function AjustesPage() {
@@ -59,6 +61,20 @@ export default function AjustesPage() {
   const handleSave = () => {
     console.log({ motorSettings, eposSettings, fleetSettings, integrationSettings })
     // API call would go here
+  }
+
+  const handleResetData = () => {
+    // Limpiar el localStorage para recargar los datos mock
+    localStorage.removeItem('routes-storage')
+    localStorage.removeItem('deliveries-storage')
+    localStorage.removeItem('drivers-storage')
+    localStorage.removeItem('clients-storage')
+    toast.success('Datos reseteados correctamente', {
+      description: 'Recarga la página para ver los cambios'
+    })
+    setTimeout(() => {
+      window.location.reload()
+    }, 1500)
   }
 
   return (
@@ -586,6 +602,25 @@ export default function AjustesPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Data Reset Section */}
+      <Card className="border-destructive/50 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <RefreshCw className="h-5 w-5" />
+            Resetear Datos de Prueba
+          </CardTitle>
+          <CardDescription>
+            Limpia el localStorage y recarga los datos mock desde cero (incluye las nuevas rutas)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleResetData} variant="destructive" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Resetear Datos
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Save Button */}
       <div className="flex justify-end gap-3">

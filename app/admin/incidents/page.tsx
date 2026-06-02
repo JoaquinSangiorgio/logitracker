@@ -475,7 +475,7 @@ export default function IncidentsPage() {
               <div>
                 <h3 className="text-lg font-semibold">{selectedIncident.title}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Reportado el {format(new Date(selectedIncident.createdAt), 'dd MMMM yyyy a las HH:mm', { locale: es })}
+                  Reportado el {format(new Date(selectedIncident.createdAt), "dd 'de' MMMM yyyy 'a las' HH:mm", { locale: es })}
                 </p>
               </div>
               

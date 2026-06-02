@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Home, Package, AlertTriangle, User } from 'lucide-react'
+import { Home, Package, Route, AlertTriangle, User } from 'lucide-react'
 
 const navItems = [
   { href: '/driver', icon: Home, label: 'Inicio' },
+  { href: '/driver/recorridos', icon: Route, label: 'Recorridos' },
   { href: '/driver/deliveries', icon: Package, label: 'Entregas' },
   { href: '/driver/incidents', icon: AlertTriangle, label: 'Incidencias' },
   { href: '/driver/profile', icon: User, label: 'Perfil' },
@@ -17,7 +18,7 @@ export function DriverNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
-      <div className="grid grid-cols-4 h-16">
+      <div className="grid grid-cols-5 h-16">
         {navItems.map((item) => {
           const isActive = pathname === item.href
           return (

@@ -2,15 +2,17 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Truck, 
-  Users, 
-  Package, 
+import {
+  LayoutDashboard,
+  Truck,
+  Users,
+  Package,
   AlertTriangle,
   MapPin,
   Settings,
-  LogOut
+  LogOut,
+  Route,
+  Monitor
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import {
@@ -35,6 +37,16 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
+    title: 'Monitoreo en Vivo',
+    url: '/admin/monitoreo',
+    icon: Monitor,
+  },
+  {
+    title: 'Recorridos',
+    url: '/admin/recorridos',
+    icon: Route,
+  },
+  {
     title: 'Choferes',
     url: '/admin/drivers',
     icon: Truck,
@@ -49,11 +61,11 @@ const menuItems = [
     url: '/admin/deliveries',
     icon: Package,
   },
-  {
-    title: 'Mapa en Vivo',
-    url: '/admin/map',
-    icon: MapPin,
-  },
+  // {
+  //   title: 'Mapa en Vivo',
+  //   url: '/admin/map',
+  //   icon: MapPin,
+  // },
   {
     title: 'Incidencias',
     url: '/admin/incidents',
