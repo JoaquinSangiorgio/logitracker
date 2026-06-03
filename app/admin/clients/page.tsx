@@ -31,6 +31,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { 
   Plus, 
@@ -45,7 +52,25 @@ import {
   Package
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { mexicanCities } from '@/lib/mexican-cities'
 import type { Client } from '@/lib/types'
+
+// 1. Interfaces para los estados y las props del formulario aislado
+interface FormDataState {
+  name: string
+  email: string
+  phone: string
+  address: string
+  city: string
+  postalCode: string
+}
+
+interface ClientFormProps {
+  formData: FormDataState
+  setFormData: React.Dispatch<React.SetStateAction<FormDataState>>
+  onSubmit: () => void
+  submitLabel: string
+}
 
 export default function ClientsPage() {
   const { clients, addClient, updateClient, deleteClient } = useClientsStore()
@@ -53,7 +78,7 @@ export default function ClientsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormDataState>({
     name: '',
     email: '',
     phone: '',
@@ -61,6 +86,18 @@ export default function ClientsPage() {
     city: '',
     postalCode: ''
   })
+
+  // Función para resetear los inputs por completo
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      postalCode: ''
+    })
+  }
 
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -73,7 +110,7 @@ export default function ClientsPage() {
       ...formData,
       role: 'client'
     })
-    setFormData({ name: '', email: '', phone: '', address: '', city: '', postalCode: '' })
+    resetForm()
     setIsAddDialogOpen(false)
   }
 
@@ -82,6 +119,7 @@ export default function ClientsPage() {
       updateClient(selectedClient.id, formData)
       setIsEditDialogOpen(false)
       setSelectedClient(null)
+      resetForm()
     }
   }
 
@@ -104,73 +142,6 @@ export default function ClientsPage() {
     }
   }
 
-  const ClientForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
-    <div className="grid gap-4 py-4">
-      <div className="grid gap-2">
-        <Label htmlFor="name">Nombre o razon social</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Empresa ABC S.A."
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="email">Correo electronico</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="contacto@empresa.com"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="phone">Telefono</Label>
-          <Input
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder="+52 55 1234 5678"
-          />
-        </div>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="address">Direccion</Label>
-        <Input
-          id="address"
-          value={formData.address}
-          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-          placeholder="Av. Reforma 123, Col. Centro"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="city">Ciudad</Label>
-          <Input
-            id="city"
-            value={formData.city}
-            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-            placeholder="Ciudad de Mexico"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="postalCode">Codigo Postal</Label>
-          <Input
-            id="postalCode"
-            value={formData.postalCode}
-            onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-            placeholder="06600"
-          />
-        </div>
-      </div>
-      <DialogFooter>
-        <Button type="button" onClick={onSubmit}>{submitLabel}</Button>
-      </DialogFooter>
-    </div>
-  )
-
   const totalOrders = clients.reduce((sum, c) => sum + c.totalOrders, 0)
 
   return (
@@ -180,7 +151,15 @@ export default function ClientsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
           <p className="text-muted-foreground">Gestiona los clientes del sistema</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        
+        {/* Modal Agregar Cliente */}
+        <Dialog 
+          open={isAddDialogOpen} 
+          onOpenChange={(open) => {
+            setIsAddDialogOpen(open)
+            if (open) resetForm() // Limpia todo al abrir
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -194,7 +173,12 @@ export default function ClientsPage() {
                 Ingresa los datos del nuevo cliente
               </DialogDescription>
             </DialogHeader>
-            <ClientForm onSubmit={handleAddClient} submitLabel="Agregar Cliente" />
+            <ClientForm 
+              formData={formData}
+              setFormData={setFormData}
+              onSubmit={handleAddClient} 
+              submitLabel="Agregar Cliente" 
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -343,7 +327,16 @@ export default function ClientsPage() {
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog 
+        open={isEditDialogOpen} 
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open)
+          if (!open) {
+            setSelectedClient(null)
+            resetForm() // Limpia todo al cerrar
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Editar Cliente</DialogTitle>
@@ -351,9 +344,88 @@ export default function ClientsPage() {
               Modifica los datos del cliente
             </DialogDescription>
           </DialogHeader>
-          <ClientForm onSubmit={handleEditClient} submitLabel="Guardar Cambios" />
+          <ClientForm 
+            formData={formData}
+            setFormData={setFormData}
+            onSubmit={handleEditClient} 
+            submitLabel="Guardar Cambios" 
+          />
         </DialogContent>
       </Dialog>
     </div>
   )
 }
+
+// 2. FORMULARIO EXTRAÍDO AL ÁMBITO GLOBAL PARA MANTENER EL FOCO DEL TECLADO
+const ClientForm = ({ formData, setFormData, onSubmit, submitLabel }: ClientFormProps) => (
+  <div className="grid gap-4 py-4">
+    <div className="grid gap-2">
+      <Label htmlFor="name">Nombre o razon social</Label>
+      <Input
+        id="name"
+        value={formData.name}
+        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        placeholder="Empresa ABC S.A."
+      />
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="email">Correo electronico</Label>
+        <Input
+          id="email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="contacto@empresa.com"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="phone">Telefono</Label>
+        <Input
+          id="phone"
+          value={formData.phone}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          placeholder="+52 55 1234 5678"
+        />
+      </div>
+    </div>
+    <div className="grid gap-2">
+      <Label htmlFor="address">Direccion</Label>
+      <Input
+        id="address"
+        value={formData.address}
+        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+        placeholder="Av. Reforma 123, Col. Centro"
+      />
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="city">Ciudad</Label>
+        <Select value={formData.city} onValueChange={(value) => setFormData({ ...formData, city: value })}>
+          <SelectTrigger id="city">
+            <SelectValue placeholder="Selecciona una ciudad" />
+          </SelectTrigger>
+          <SelectContent>
+            {mexicanCities.map((city) => (
+              <SelectItem key={city} value={city}>
+                {city}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="postalCode">Codigo Postal</Label>
+        <Input
+          id="postalCode"
+          value={formData.postalCode}
+          onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+          placeholder="06600"
+        />
+      </div>
+    </div>
+    <DialogFooter>
+      <Button type="button" onClick={onSubmit}>{submitLabel}</Button>
+    </DialogFooter>
+  </div>
+)

@@ -52,7 +52,7 @@ export default function NuevoRecorridoPage() {
   const filteredAndSortedDeliveries = useMemo(() => {
     let filtered = deliveries.filter(d => {
       // Filtrar por estado
-      if (filterStatus !== 'all' && d.status !== filterStatus) return false
+      if (filterStatus !== 'all' && String(d.status) !== filterStatus) return false
 
       // Filtrar por prioridad
       if (filterPriority !== 'all' && d.priority !== filterPriority) return false
@@ -79,10 +79,10 @@ export default function NuevoRecorridoPage() {
         case 'oldest':
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         case 'priority-high':
-          const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
+          const priorityOrder = { urgente: 4, alta: 3, media: 2, baja: 1 }
           return priorityOrder[b.priority] - priorityOrder[a.priority]
         case 'priority-low':
-          const priorityOrder2 = { urgent: 4, high: 3, medium: 2, low: 1 }
+          const priorityOrder2 = { urgente: 4, alta: 3, media: 2, baja: 1 }
           return priorityOrder2[a.priority] - priorityOrder2[b.priority]
         case 'date-asc':
           return new Date(a.estimatedDelivery).getTime() - new Date(b.estimatedDelivery).getTime()

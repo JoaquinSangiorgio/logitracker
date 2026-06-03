@@ -42,7 +42,7 @@ export interface Delivery {
   driverId?: string
   driverName?: string
   status: DeliveryStatus
-  priority: 'low' | 'medium' | 'high' | 'urgent'
+  priority: 'baja' | 'media' | 'alta' | 'urgente'
   
   // Pickup info
   pickupAddress: string
@@ -76,14 +76,14 @@ export interface Delivery {
 }
 
 export type DeliveryStatus = 
-  | 'pending'
-  | 'assigned'
-  | 'picked_up'
-  | 'in_transit'
-  | 'arriving'
-  | 'delivered'
-  | 'failed'
-  | 'cancelled'
+  | 'pendiente'
+  | 'asignada'
+  | 'recogida'
+  | 'en transito'
+  | 'arrivando'
+  | 'entregada'
+  | 'fallida'
+  | 'cancelada'
 
 export interface Incident {
   id: string
@@ -95,7 +95,7 @@ export interface Incident {
   assigneeName?: string
   
   type: IncidentType
-  priority: 'low' | 'medium' | 'high' | 'critical'
+  priority: 'baja' | 'media' | 'alta' | 'critica'
   status: IncidentStatus
   
   title: string
